@@ -13,7 +13,6 @@
     },
     "android": {
       "package": "com.iporesult.checker"
-      }
     },
     "web": {
       "bundler": "metro",
