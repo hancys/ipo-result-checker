@@ -90,7 +90,6 @@ export function BoidManager({ visible, onClose, onBoidSelect }: BoidManagerProps
 
   const handleSelectBoid = (boid: string) => {
     onBoidSelect(boid);
-    onClose();
   };
 
   return (
@@ -114,7 +113,10 @@ export function BoidManager({ visible, onClose, onBoidSelect }: BoidManagerProps
               <View key={savedBoid.id} style={styles.boidItem}>
                 <TouchableOpacity
                   style={styles.boidContent}
-                  onPress={() => handleSelectBoid(savedBoid.boid)}
+                  onPress={() => {
+                    handleSelectBoid(savedBoid.boid);
+                    onClose();
+                  }}
                 >
                   <Text style={styles.boidName}>{savedBoid.name}</Text>
                   <Text style={styles.boidNumber}>{savedBoid.boid}</Text>

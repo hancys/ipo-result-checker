@@ -56,6 +56,10 @@ export default function WebViewScreen() {
 
   const handleBoidSelect = (boid: string) => {
     setBoidInput(boid);
+    // Auto-paste when BOID is selected
+    setTimeout(() => {
+      handlePasteToPage();
+    }, 100);
   };
 
   const handlePasteToPage = () => {

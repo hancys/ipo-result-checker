@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { Plus, RefreshCw } from 'lucide-react-native';
 import { IpoSiteCard } from '@/components/IpoSiteCard';
 import { BoidManager } from '@/components/BoidManager';
+import { CustomSiteModal } from '@/components/CustomSiteModal';
 import { IPO_SITES } from '@/constants/ipoSites';
 import { IpoSite } from '@/types/ipo';
 import { storageService } from '@/services/storage';
@@ -21,6 +22,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const [allSites, setAllSites] = useState<IpoSite[]>(IPO_SITES);
   const [showBoidManager, setShowBoidManager] = useState(false);
+  const [showCustomSiteModal, setShowCustomSiteModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -57,6 +59,16 @@ export default function HomeScreen() {
     Alert.alert('BOID Selected', `Selected BOID: ${boid}`);
   };
 
+  const handleAddCustomSite = async (siteData: { name: string; url: string; icon: string }) => {
+    try {
+      await storageService.saveCustomSite(siteData);
+      await loadAllSites();
+      Alert.alert('Success', 'Custom site added successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add custom site');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -88,7 +100,10 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.addSiteButton} onPress={() => {}}>
+        <TouchableOpacity 
+          style={styles.addSiteButton} 
+          onPress={() => setShowCustomSiteModal(true)}
+        >
           <Plus size={20} color="#2563EB" />
           <Text style={styles.addSiteButtonText}>Add Custom Site</Text>
         </TouchableOpacity>
@@ -98,6 +113,12 @@ export default function HomeScreen() {
         visible={showBoidManager}
         onClose={() => setShowBoidManager(false)}
         onBoidSelect={handleBoidSelect}
+      />
+
+      <CustomSiteModal
+        visible={showCustomSiteModal}
+        onClose={() => setShowCustomSiteModal(false)}
+        onSave={handleAddCustomSite}
       />
     </SafeAreaView>
   );
