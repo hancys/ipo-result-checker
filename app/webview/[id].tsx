@@ -69,56 +69,80 @@ export default function WebViewScreen() {
     }
 
     const jsCode = `
-      // Try common input selectors for BOID fields
-      const possibleSelectors = [
-        'input[name*="boid"]',
-        'input[name*="BOID"]',
-        'input[placeholder*="boid"]',
-        'input[placeholder*="BOID"]',
-        'input[id*="boid"]',
-        'input[id*="BOID"]',
-        'input[name*="demat"]',
-        'input[name*="client"]',
-        'input[type="text"]:not([readonly]):not([disabled])',
-        'input[type="number"]:not([readonly]):not([disabled])'
-      ];
-      
-      let filled = false;
-      for (let selector of possibleSelectors) {
-        const inputs = document.querySelectorAll(selector);
-        for (let input of inputs) {
-          if (input.offsetParent !== null && !input.value) {
-            input.value = '${boidInput}';
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-            input.focus();
-            filled = true;
-            break;
+      (function() {
+        try {
+          // Try common input selectors for BOID fields
+          const possibleSelectors = [
+            'input[name*="boid" i]',
+            'input[name*="BOID"]',
+            'input[placeholder*="boid" i]',
+            'input[placeholder*="BOID"]',
+            'input[id*="boid" i]',
+            'input[id*="BOID"]',
+            'input[name*="demat" i]',
+            'input[name*="client" i]',
+            'input[type="text"]:not([readonly]):not([disabled])',
+            'input[type="number"]:not([readonly]):not([disabled])',
+            'input:not([type]):not([readonly]):not([disabled])'
+          ];
+          
+          let filled = false;
+          const boidValue = "${boidInput.replace(/"/g, '\\"')}";
+          
+          // Try specific selectors first
+          for (let selector of possibleSelectors) {
+            const inputs = document.querySelectorAll(selector);
+            for (let input of inputs) {
+              const rect = input.getBoundingClientRect();
+              if (rect.width > 0 && rect.height > 0 && !input.value.trim()) {
+                input.value = boidValue;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                input.dispatchEvent(new Event('keyup', { bubbles: true }));
+                input.focus();
+                filled = true;
+                break;
+              }
+            }
+            if (filled) break;
           }
-        }
-        if (filled) break;
-      }
-      
-      // If no specific field found, try the first visible empty text input
-      if (!filled) {
-        const allInputs = document.querySelectorAll('input[type="text"], input[type="number"]');
-        for (let input of allInputs) {
-          if (input.offsetParent !== null && !input.value && !input.readOnly && !input.disabled) {
-            input.value = '${boidInput}';
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-            input.focus();
-            filled = true;
-            break;
+          
+          // If no specific field found, try any visible empty input
+          if (!filled) {
+            const allInputs = document.querySelectorAll('input');
+            for (let input of allInputs) {
+              const rect = input.getBoundingClientRect();
+              const isVisible = rect.width > 0 && rect.height > 0;
+              const isEmpty = !input.value.trim();
+              const isEditable = !input.readOnly && !input.disabled;
+              
+              if (isVisible && isEmpty && isEditable) {
+                input.value = boidValue;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                input.dispatchEvent(new Event('keyup', { bubbles: true }));
+                input.focus();
+                filled = true;
+                break;
+              }
+            }
           }
+          
+          return filled;
+        } catch (error) {
+          console.error('Paste error:', error);
+          return false;
         }
-      }
-      
-      filled;
+      })();
     `;
 
-    webViewRef.current?.injectJavaScript(jsCode);
-    Alert.alert('Success', 'BOID has been pasted to the page');
+    webViewRef.current?.injectJavaScript(`
+      ${jsCode}
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'pasteResult',
+        success: ${jsCode}
+      }));
+    `);
   };
 
   const handleSaveBoid = async () => {
@@ -200,6 +224,20 @@ export default function WebViewScreen() {
           onError={(syntheticEvent) => {
             const { nativeEvent } = syntheticEvent;
             Alert.alert('Error', `Failed to load webpage: ${nativeEvent.description}`);
+          }}
+          onMessage={(event) => {
+            try {
+              const data = JSON.parse(event.nativeEvent.data);
+              if (data.type === 'pasteResult') {
+                if (data.success) {
+                  Alert.alert('Success', 'BOID has been pasted to the page');
+                } else {
+                  Alert.alert('Info', 'Could not find a suitable input field. Please paste manually.');
+                }
+              }
+            } catch (error) {
+              console.error('Message parsing error:', error);
+            }
           }}
           javaScriptEnabled={true}
           domStorageEnabled={true}
@@ -352,8 +390,8 @@ const styles = StyleSheet.create({
   },
   pasteButtonText: {
     color: 'white',
-    backgroundColor: '#F1F5F9',
     fontSize: 14,
+    fontWeight: '500',
   },
   actionsSection: {
     flexDirection: 'row',
