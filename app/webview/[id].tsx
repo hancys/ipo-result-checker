@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   },
   pasteButtonText: {
     color: 'white',
-    fontWeight: '500',
+    backgroundColor: '#F1F5F9',
     fontSize: 14,
   },
   actionsSection: {
